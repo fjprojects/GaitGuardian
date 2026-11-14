@@ -4,7 +4,7 @@ from django.db import models
 class Measurement(models.Model):
     """A demonstration measurement row; not a clinical assessment."""
 
-    date = models.CharField(max_length=80)
+    date = models.CharField(max_length=80, unique=True)
     left_step_time = models.DecimalField(max_digits=7, decimal_places=3)
     right_step_time = models.DecimalField(max_digits=7, decimal_places=3)
     walking_speed = models.DecimalField(max_digits=7, decimal_places=3)
