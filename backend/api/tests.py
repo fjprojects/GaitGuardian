@@ -1,4 +1,5 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
+
 from api.models import Measurement
 
 
@@ -22,27 +23,60 @@ class MeasurementApiTests(TestCase):
             sort_order=2,
         )
 
-    def test_health_endpoint(self):
+    def test_health_endpoint_reports_database_mode(self):
         response = self.client.get("/api/health/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "ok")
         self.assertEqual(response.json()["project"], "GaitGuardian")
+        self.assertEqual(response.json()["database"], "connected")
         self.assertEqual(response.json()["services"], ["measurements"])
 
-    def test_measurement_endpoint_returns_numeric_values(self):
+    def test_measurement_endpoint_returns_numeric_values_and_metadata(self):
         response = self.client.get("/api/measurements/")
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data["count"], 2)
+        self.assertEqual(data["pagination"]["total_items"], 2)
         self.assertIsInstance(data["items"][0]["walking_speed"], float)
         self.assertIn("disclaimer", data)
+
+    def test_search_filters_by_sample_label(self):
+        response = self.client.get("/api/measurements/?q=sample%2002")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item["date"] for item in response.json()["items"]], ["Sample 02"])
+
+    def test_walking_speed_range_filters_records(self):
+        response = self.client.get(
+            "/api/measurements/?min_walking_speed=0.80&max_walking_speed=0.90"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item["date"] for item in response.json()["items"]], ["Sample 02"])
+
+    def test_speed_sort_and_pagination(self):
+        response = self.client.get(
+            "/api/measurements/?sort=walking_speed&order=desc&page_size=1"
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["count"], 2)
+        self.assertEqual(payload["items"][0]["date"], "Sample 02")
+        self.assertTrue(payload["pagination"]["has_next"])
+
+    def test_invalid_numeric_filter_returns_structured_error(self):
+        response = self.client.get("/api/measurements/?min_walking_speed=fast")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"]["parameter"], "min_walking_speed")
+
+    def test_inverted_speed_range_is_rejected(self):
+        response = self.client.get(
+            "/api/measurements/?min_walking_speed=1.0&max_walking_speed=0.5"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("cannot be greater", response.json()["error"]["message"])
 
     def test_measurement_endpoint_rejects_post(self):
         response = self.client.post("/api/measurements/", data={})
         self.assertEqual(response.status_code, 405)
-
-
-from django.test import override_settings
 
 
 class MeasurementStaticDemoModeTests(TestCase):
@@ -52,6 +86,7 @@ class MeasurementStaticDemoModeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["count"], 6)
+        self.assertEqual(payload["pagination"]["total_items"], 6)
         self.assertIsInstance(payload["items"][0]["walking_speed"], float)
 
     @override_settings(DEMO_DATA_MODE=True)
@@ -59,3 +94,13 @@ class MeasurementStaticDemoModeTests(TestCase):
         response = self.client.get("/api/health/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["data_mode"], "static-demo")
+        self.assertEqual(response.json()["database"], "not-required")
+
+    @override_settings(DEMO_DATA_MODE=True)
+    def test_static_demo_mode_uses_the_same_speed_filters(self):
+        response = self.client.get("/api/measurements/?min_walking_speed=1.0")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [item["date"] for item in response.json()["items"]],
+            ["Sample 05", "Sample 06"],
+        )
