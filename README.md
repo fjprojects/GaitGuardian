@@ -1,33 +1,39 @@
 # GaitGuardian
 
-A mobility-monitoring dashboard concept for exploring walking-pattern measurements over time.
+A **React + Django** starter for exploring walking-pattern measurements over time.
 
-## Current prototype
+## Stack
+- React 19.3 + Vite 8 frontend
+- Django 6.1 JSON API
+- Vite proxies local `/api` calls to Django on port 8000
 
-- Display a small set of fictional walking-session measurements.
-- Calculate descriptive averages for speed, step time, and left/right timing similarity.
-- Visualise walking-speed values across sessions.
-- Load a CSV file locally in the browser and review its measurements.
-
-## CSV format
-
-The uploaded file should include these columns:
-
-`date,left_step_time,right_step_time,walking_speed,balance_score`
-
-The prototype parses the selected file locally in the browser. It does not upload the file to a server.
-
-## Important scope note
-
-This is a **descriptive visualisation prototype**, not a fall-risk detector, diagnosis, prediction system, or medical assessment. The built-in dataset is fictional, and values such as the balance score use a dataset-provided scale rather than a clinical standard.
+## Structure
+- `frontend/` — React application and preserved earlier dashboard at `public/prototype.html`
+- `backend/` — Django project and JSON endpoints
 
 ## Run locally
 
-No build tools or dependencies are required. Open `index.html` in a modern browser, or serve this folder with any static web server.
+### Terminal 1 — Django API
+```bash
+cd backend
+python -m venv .venv
+# Windows PowerShell: .venv\\Scripts\\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
+python -m pip install -r requirements.txt
+python manage.py runserver 8000
+```
 
-## Roadmap
+### Terminal 2 — React frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-- Document measurement definitions and provenance.
-- Validate data quality and measurement reliability before drawing conclusions.
-- Evaluate with appropriate domain experts and ethical safeguards.
-- Add securely managed data import only after defining consent and privacy requirements.
+Open the Vite URL printed in the terminal (normally `http://localhost:5173`). The React page fetches `GET /api/health/` and `GET /api/measurements/`.
+
+## Production configuration
+Set `VITE_API_BASE_URL` in `frontend/.env.local` to the deployed Django backend URL before building. On the backend configure `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=false`, `DJANGO_ALLOWED_HOSTS`, and `CORS_ALLOWED_ORIGINS`.
+
+## Data limitations
+The included measurements are fictional examples. This API is descriptive only: it does not calculate fall risk, make predictions, diagnose conditions, or provide a medical assessment. The earlier HTML dashboard is preserved separately; its UI has not yet been rewritten as React components.
