@@ -18,6 +18,7 @@ def health(request):
         "project": PROJECT,
         "framework": "Django",
         "django_version": get_version(),
+        "services": ["measurements"],
     })
 
 
