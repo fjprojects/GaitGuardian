@@ -26,6 +26,8 @@ class MeasurementApiTests(TestCase):
         response = self.client.get("/api/health/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "ok")
+        self.assertEqual(response.json()["project"], "GaitGuardian")
+        self.assertEqual(response.json()["services"], ["measurements"])
 
     def test_measurement_endpoint_returns_numeric_values(self):
         response = self.client.get("/api/measurements/")
