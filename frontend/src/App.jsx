@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getJson } from "./lib/api.js";
 import { parseMeasurementCsv, toMeasurementCsv } from "./lib/csv.js";
-import { filterAndSortMeasurements, summarizeMeasurements } from "./lib/analysis.js";
+import { compareMeasurementSessions, filterAndSortMeasurements, summarizeMeasurements } from "./lib/analysis.js";
 
 function formatValue(value, decimals = 2) {
   return value === null || value === undefined || !Number.isFinite(Number(value))
@@ -52,6 +52,8 @@ export default function App() {
   const [maximumSpeed, setMaximumSpeed] = useState("");
   const [sort, setSort] = useState("default");
   const [order, setOrder] = useState("asc");
+  const [firstSessionId, setFirstSessionId] = useState("");
+  const [secondSessionId, setSecondSessionId] = useState("");
 
   async function loadSample() {
     setStatus("loading");
@@ -102,6 +104,11 @@ export default function App() {
     ? apiSummary
     : summarizeMeasurements(visibleRows);
   const statistics = summary.statistics;
+  const comparisonFirst = rows.find((row) => row.date === firstSessionId) ?? rows[0] ?? null;
+  const comparisonSecond = rows.find((row) => row.date === secondSessionId && row.date !== comparisonFirst?.date)
+    ?? rows.find((row) => row.date !== comparisonFirst?.date)
+    ?? null;
+  const sessionComparison = compareMeasurementSessions(rows, comparisonFirst?.date, comparisonSecond?.date);
   const averageLeft = statistics.left_step_time.average;
   const averageRight = statistics.right_step_time.average;
   const averageStep = averageLeft === null || averageRight === null
@@ -193,6 +200,21 @@ export default function App() {
         <article className="metric-card"><span className="metric-label">LEFT / RIGHT STEP-TIME GAP</span><strong>{formatValue(timingGap, 3)}<small> s</small></strong><span className="metric-foot">Difference between dataset means</span><span className="metric-icon">⇄</span></article>
         <article className="metric-card"><span className="metric-label">AVERAGE STEP TIME</span><strong>{formatValue(averageStep)}<small> s</small></strong><span className="metric-foot">Mean of left/right averages</span><span className="metric-icon">◷</span></article>
         <article className="metric-card"><span className="metric-label">DATASET BALANCE VALUE</span><strong>{formatValue(statistics.balance_score.average, 1)}</strong><span className="metric-foot">Source-provided scale; not clinical</span><span className="metric-icon">◈</span></article>
+      </section>
+
+      <section className="panel session-comparison" aria-label="Compare two measurement sessions">
+        <div className="panel-heading"><div><p className="eyebrow">SESSION COMPARISON</p><h2>Compare two sessions</h2><p>Review source values side by side and see the arithmetic difference.</p></div><span className="panel-tag">B − A</span></div>
+        <div className="session-selects">
+          <label className="analysis-field"><span>SESSION A</span><select value={comparisonFirst?.date ?? ""} onChange={(event) => setFirstSessionId(event.target.value)} disabled={!rows.length}><option value="" disabled>Select a session</option>{rows.map((row) => <option key={row.date} value={row.date}>{row.date}</option>)}</select></label>
+          <label className="analysis-field"><span>SESSION B</span><select value={comparisonSecond?.date ?? ""} onChange={(event) => setSecondSessionId(event.target.value)} disabled={rows.length < 2}><option value="" disabled>Select another session</option>{rows.filter((row) => row.date !== comparisonFirst?.date).map((row) => <option key={row.date} value={row.date}>{row.date}</option>)}</select></label>
+        </div>
+        {sessionComparison ? <div className="table-scroll comparison-table"><table><thead><tr><th>MEASUREMENT</th><th>SESSION A</th><th>SESSION B</th><th>DIFFERENCE (B − A)</th></tr></thead><tbody>
+          <tr><td>Left step time</td><td>{formatValue(sessionComparison.first.left_step_time, 3)} s</td><td>{formatValue(sessionComparison.second.left_step_time, 3)} s</td><td>{formatValue(sessionComparison.differences.left_step_time, 3)} s</td></tr>
+          <tr><td>Right step time</td><td>{formatValue(sessionComparison.first.right_step_time, 3)} s</td><td>{formatValue(sessionComparison.second.right_step_time, 3)} s</td><td>{formatValue(sessionComparison.differences.right_step_time, 3)} s</td></tr>
+          <tr><td>Walking speed</td><td>{formatValue(sessionComparison.first.walking_speed, 3)} m/s</td><td>{formatValue(sessionComparison.second.walking_speed, 3)} m/s</td><td>{formatValue(sessionComparison.differences.walking_speed, 3)} m/s</td></tr>
+          <tr><td>Balance value</td><td>{formatValue(sessionComparison.first.balance_score, 1)}</td><td>{formatValue(sessionComparison.second.balance_score, 1)}</td><td>{formatValue(sessionComparison.differences.balance_score, 2)}</td></tr>
+        </tbody></table></div> : <div className="chart-empty comparison-empty">Load at least two measurement sessions to compare them.</div>}
+        <p className="comparison-note">Differences are calculated as Session B minus Session A. They are descriptive arithmetic only and do not indicate improvement, deterioration or clinical meaning.</p>
       </section>
 
       <section className="analytics-grid">

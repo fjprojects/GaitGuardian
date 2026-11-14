@@ -71,3 +71,21 @@ export function filterAndSortMeasurements(rows = [], {
     return comparison * direction;
   });
 }
+
+
+export function compareMeasurementSessions(rows = [], firstDate = "", secondDate = "") {
+  const first = rows.find((row) => row.date === firstDate);
+  const second = rows.find((row) => row.date === secondDate);
+  if (!first || !second || first === second) return null;
+
+  const differences = {};
+  for (const [field, decimalPlaces] of Object.entries(NUMERIC_FIELDS)) {
+    const firstValue = toFiniteNumber(first[field]);
+    const secondValue = toFiniteNumber(second[field]);
+    differences[field] = firstValue === null || secondValue === null
+      ? null
+      : Number((secondValue - firstValue).toFixed(decimalPlaces));
+  }
+
+  return { first, second, differences };
+}

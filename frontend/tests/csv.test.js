@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { parseMeasurementCsv, toMeasurementCsv } from "../src/lib/csv.js";
-import { filterAndSortMeasurements, summarizeMeasurements } from "../src/lib/analysis.js";
+import { compareMeasurementSessions, filterAndSortMeasurements, summarizeMeasurements } from "../src/lib/analysis.js";
 
 const header = "date,left_step_time,right_step_time,walking_speed,balance_score";
 const sampleRows = [
@@ -88,4 +88,22 @@ test("summaries remain well-defined for empty datasets", () => {
   const summary = summarizeMeasurements([]);
   assert.equal(summary.measurement_count, 0);
   assert.deepEqual(summary.statistics.walking_speed, { minimum: null, maximum: null, average: null });
+});
+
+
+test("compares two sessions using B minus A for each descriptive field", () => {
+  const result = compareMeasurementSessions(sampleRows, "Sample 01", "Sample 03");
+  assert.equal(result.first.date, "Sample 01");
+  assert.equal(result.second.date, "Sample 03");
+  assert.deepEqual(result.differences, {
+    left_step_time: -0.02,
+    right_step_time: -0.02,
+    walking_speed: 0.24,
+    balance_score: 7,
+  });
+});
+
+test("session comparison safely rejects missing or identical sessions", () => {
+  assert.equal(compareMeasurementSessions(sampleRows, "Sample 01", "Sample 01"), null);
+  assert.equal(compareMeasurementSessions(sampleRows, "Missing", "Sample 02"), null);
 });
