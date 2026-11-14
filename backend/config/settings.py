@@ -61,3 +61,6 @@ CSRF_COOKIE_SECURE = not DEBUG
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 X_FRAME_OPTIONS = "SAMEORIGIN"
+
+# Vercel's stateless demo deployment serves the documented read-only dataset.
+DEMO_DATA_MODE = os.environ.get("DEMO_DATA_MODE", "false").lower() == "true"
