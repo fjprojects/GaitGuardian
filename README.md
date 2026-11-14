@@ -21,6 +21,7 @@ The React frontend and Django API are deployed as separate, Git-connected Vercel
 - Paginated, validated responses with clear errors for invalid numeric filters and page values.
 - Database-aware health checks in local/database mode; static demo mode explicitly reports that a database is not required.
 - SVG trend visualisation and a session-level measurement register.
+- Compare two loaded sessions side by side, with field differences calculated as Session B minus Session A; results remain descriptive only.
 - CSV import parsed locally in the browser; files are not uploaded to Django.
 - CSV export of the currently loaded dataset.
 - Source labels and CSV validation for missing columns, malformed quotes, invalid numbers, file size and row count.
