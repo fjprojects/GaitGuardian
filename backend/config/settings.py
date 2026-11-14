@@ -16,7 +16,7 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
-INSTALLED_APPS = ["django.contrib.contenttypes", "corsheaders", "api"]
+INSTALLED_APPS = ["django.contrib.contenttypes", "django.contrib.staticfiles", "corsheaders", "api"]
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
