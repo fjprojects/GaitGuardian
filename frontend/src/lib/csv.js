@@ -14,6 +14,20 @@ function parseCsvRows(source) {
   let row = [];
   let field = "";
   let inQuotes = false;
+  let afterQuote = false;
+
+  const finishRow = () => {
+    row.push(field);
+    if (row.some((value) => value.trim() !== "")) {
+      rows.push(row);
+      if (rows.length > MAX_ROWS + 1) {
+        throw new Error(`Please keep a local import to ${MAX_ROWS.toLocaleString()} rows or fewer.`);
+      }
+    }
+    row = [];
+    field = "";
+    afterQuote = false;
+  };
 
   for (let index = 0; index < source.length; index += 1) {
     const character = source[index];
@@ -25,9 +39,24 @@ function parseCsvRows(source) {
           index += 1;
         } else {
           inQuotes = false;
+          afterQuote = true;
         }
       } else {
         field += character;
+      }
+      continue;
+    }
+
+    if (afterQuote) {
+      if (character === ",") {
+        row.push(field);
+        field = "";
+        afterQuote = false;
+      } else if (character === "\n" || character === "\r") {
+        finishRow();
+        if (character === "\r" && source[index + 1] === "\n") index += 1;
+      } else if (!/\s/.test(character)) {
+        throw new Error("Invalid CSV: unexpected characters after a quoted field.");
       }
       continue;
     }
@@ -42,10 +71,7 @@ function parseCsvRows(source) {
       row.push(field);
       field = "";
     } else if (character === "\n" || character === "\r") {
-      row.push(field);
-      if (row.some((value) => value.trim() !== "")) rows.push(row);
-      row = [];
-      field = "";
+      finishRow();
       if (character === "\r" && source[index + 1] === "\n") index += 1;
     } else {
       field += character;
@@ -53,7 +79,7 @@ function parseCsvRows(source) {
   }
 
   if (inQuotes) throw new Error("Invalid CSV: a quoted field was not closed.");
-  if (field.length > 0 || row.length > 0) {
+  if (field.length > 0 || row.length > 0 || afterQuote) {
     row.push(field);
     if (row.some((value) => value.trim() !== "")) rows.push(row);
   }
@@ -85,6 +111,10 @@ export function parseMeasurementCsv(input) {
 
   const indexes = Object.fromEntries(headers.map((header, index) => [header, index]));
   const rows = matrix.slice(1).map((cells, rowIndex) => {
+    if (cells.length !== headers.length) {
+      throw new Error(`Row ${rowIndex + 2}: expected ${headers.length} columns but found ${cells.length}.`);
+    }
+
     const date = (cells[indexes.date] ?? "").trim();
     if (!date || date.length > 80) {
       throw new Error(`Row ${rowIndex + 2}: date is required and must be 80 characters or fewer.`);
