@@ -187,7 +187,6 @@ export default function App() {
         <button className="outline-button clear-analysis" type="button" onClick={clearFilters}>Clear</button>
       </section>
       {invalidRange && <div className="filter-warning" role="alert">Minimum walking speed must not exceed maximum walking speed.</div>}
-      {importMessage && importMessage.startsWith("Row ") && <div className="filter-warning" role="alert">{importMessage}</div>}
 
       <section className="metrics-grid" aria-label="Descriptive dataset summary">
         <article className="metric-card"><span className="metric-label">AVERAGE WALKING SPEED</span><strong>{formatValue(statistics.walking_speed.average)}<small> m/s</small></strong><span className="metric-foot">Mean of {summary.measurement_count} visible records</span><span className="metric-icon">↗</span></article>
