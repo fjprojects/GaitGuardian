@@ -1,34 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { getJson } from "./lib/api.js";
-
-const REQUIRED_COLUMNS = ["date", "left_step_time", "right_step_time", "walking_speed", "balance_score"];
+import { parseMeasurementCsv, toMeasurementCsv } from "./lib/csv.js";
 
 function mean(rows, key) {
   return rows.length ? rows.reduce((sum, row) => sum + Number(row[key]), 0) / rows.length : 0;
-}
-
-function parseCsv(text) {
-  const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) throw new Error("The CSV needs a header and at least one measurement row.");
-  const headers = lines.shift().split(",").map((value) => value.trim().toLowerCase());
-  const missing = REQUIRED_COLUMNS.filter((column) => !headers.includes(column));
-  if (missing.length) throw new Error(`Missing columns: ${missing.join(", ")}`);
-  const rows = lines.map((line, index) => {
-    const cells = line.split(",");
-    const record = Object.fromEntries(headers.map((header, cellIndex) => [header, cells[cellIndex]?.trim() ?? ""]));
-    return {
-      date: record.date || `Imported ${index + 1}`,
-      left_step_time: Number(record.left_step_time),
-      right_step_time: Number(record.right_step_time),
-      walking_speed: Number(record.walking_speed),
-      balance_score: Number(record.balance_score),
-    };
-  });
-  const invalid = rows.find((row) => ![row.left_step_time, row.right_step_time, row.walking_speed, row.balance_score].every(Number.isFinite)
-    || row.left_step_time <= 0 || row.right_step_time <= 0 || row.walking_speed < 0);
-  if (invalid) throw new Error("A row contains missing or invalid numeric values. No data was imported.");
-  if (rows.length > 5000) throw new Error("Please keep a local import to 5,000 rows or fewer.");
-  return rows;
 }
 
 function Chart({ rows }) {
@@ -103,7 +78,8 @@ export default function App() {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
-      const parsed = parseCsv(await file.text());
+      if (file.size > 5 * 1024 * 1024) throw new Error("The CSV is larger than the 5 MB import limit.");
+      const parsed = parseMeasurementCsv(await file.text());
       setLocalRows(parsed);
       setSourceName(file.name);
       setImportMessage(`Loaded ${parsed.length} rows locally. The file was not uploaded.`);
@@ -116,9 +92,7 @@ export default function App() {
 
   function exportCsv() {
     if (!rows.length) return;
-    const header = REQUIRED_COLUMNS.join(",");
-    const body = rows.map((row) => REQUIRED_COLUMNS.map((column) => String(row[column] ?? "").replaceAll('"', '""')).map((value) => `"${value}"`).join(","));
-    const blob = new Blob([[header, ...body].join("\n")], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob([toMeasurementCsv(rows)], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
