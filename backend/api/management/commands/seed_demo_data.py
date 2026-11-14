@@ -16,16 +16,15 @@ class Command(BaseCommand):
     help = "Load fictional GaitGuardian demonstration measurements."
 
     def handle(self, *args, **options):
-        Measurement.objects.all().delete()
-        Measurement.objects.bulk_create([
-            Measurement(
+        for index, row in enumerate(ROWS, start=1):
+            Measurement.objects.update_or_create(
                 date=row[0],
-                left_step_time=row[1],
-                right_step_time=row[2],
-                walking_speed=row[3],
-                balance_score=row[4],
-                sort_order=index,
+                defaults={
+                    "left_step_time": row[1],
+                    "right_step_time": row[2],
+                    "walking_speed": row[3],
+                    "balance_score": row[4],
+                    "sort_order": index,
+                },
             )
-            for index, row in enumerate(ROWS, start=1)
-        ])
         self.stdout.write(self.style.SUCCESS(f"Loaded {len(ROWS)} fictional sample measurements."))
