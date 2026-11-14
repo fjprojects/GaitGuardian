@@ -40,3 +40,22 @@ class MeasurementApiTests(TestCase):
     def test_measurement_endpoint_rejects_post(self):
         response = self.client.post("/api/measurements/", data={})
         self.assertEqual(response.status_code, 405)
+
+
+from django.test import override_settings
+
+
+class MeasurementStaticDemoModeTests(TestCase):
+    @override_settings(DEMO_DATA_MODE=True)
+    def test_dataset_is_available_without_database_seed(self):
+        response = self.client.get("/api/measurements/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["count"], 6)
+        self.assertIsInstance(payload["items"][0]["walking_speed"], float)
+
+    @override_settings(DEMO_DATA_MODE=True)
+    def test_static_demo_mode_is_reported_by_health_endpoint(self):
+        response = self.client.get("/api/health/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["data_mode"], "static-demo")
