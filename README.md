@@ -15,11 +15,14 @@ The React frontend and Django API are deployed as separate, Git-connected Vercel
 ## Product capabilities
 
 - Descriptive summaries for walking speed, left/right step-time comparison and average step time.
+- Search measurement sample labels and filter by minimum/maximum walking speed.
+- Sort measurements by sample label, walking speed or left/right step time.
+- Paginated, validated responses with clear errors for invalid numeric filters and page values.
+- Database-aware health checks in local/database mode; static demo mode explicitly reports that a database is not required.
 - SVG trend visualisation and a session-level measurement register.
 - CSV import parsed locally in the browser; files are not uploaded to Django.
 - CSV export of the currently loaded dataset.
 - Source labels and CSV validation for missing columns, malformed quotes, invalid numbers, file size and row count.
-- Django-backed demonstration measurement model, seed command and JSON endpoint.
 - Original dashboard preserved at `frontend/public/prototype.html`.
 
 ## Technology
@@ -78,12 +81,26 @@ All measurement columns must contain valid numeric values. The starter limits im
 
 ## API reference
 
+All endpoints are read-only and accept GET requests.
+
 | Method | Endpoint | Purpose |
 |---|---|---|
-| GET | `/api/health/` | Health and framework version |
+| GET | `/api/health/` | Service, data-mode and database readiness status |
 | GET | `/api/measurements/` | List fictional demonstration measurements |
+| GET | `/api/measurements/?q=sample%2002` | Search sample labels |
+| GET | `/api/measurements/?min_walking_speed=0.8&max_walking_speed=1.0` | Filter a walking-speed range |
+| GET | `/api/measurements/?sort=walking_speed&order=desc` | Sort by sample label, speed or left/right step time |
 
-The deployed API is read-only. The local CSV import does not create a server-side record or upload a file.
+### Pagination and validation
+
+- `page` is a positive integer (default `1`).
+- `page_size` is an integer from `1` to `100` (default `25`).
+- `count` is the total number of records matching the filters; `items` contains the requested page.
+- The `pagination` object reports page, page size, total items/pages and next/previous flags.
+- Numeric filters must be finite decimal values. A minimum walking speed greater than the maximum is rejected with HTTP 400.
+- Invalid filters, sort modes and page values return a structured `error` object.
+
+The local CSV import does not create a server-side record or upload a file. The API remains read-only.
 
 ## Quality checks
 
