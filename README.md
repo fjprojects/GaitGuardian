@@ -15,6 +15,7 @@ The React frontend and Django API are deployed as separate, Git-connected Vercel
 ## Product capabilities
 
 - Descriptive summaries for walking speed, left/right step-time comparison and average step time.
+- A backend descriptive-statistics endpoint providing minimum, maximum and average values for each numeric field.
 - Search measurement sample labels and filter by minimum/maximum walking speed.
 - Sort measurements by sample label, walking speed or left/right step time.
 - Paginated, validated responses with clear errors for invalid numeric filters and page values.
@@ -90,15 +91,16 @@ All endpoints are read-only and accept GET requests.
 | GET | `/api/measurements/?q=sample%2002` | Search sample labels |
 | GET | `/api/measurements/?min_walking_speed=0.8&max_walking_speed=1.0` | Filter a walking-speed range |
 | GET | `/api/measurements/?sort=walking_speed&order=desc` | Sort by sample label, speed or left/right step time |
+| GET | `/api/measurements/summary/` | Return minimum, maximum and average values for numeric fields |
 
-### Pagination and validation
+### Pagination, validation and interpretation
 
 - `page` is a positive integer (default `1`).
 - `page_size` is an integer from `1` to `100` (default `25`).
 - `count` is the total number of records matching the filters; `items` contains the requested page.
-- The `pagination` object reports page, page size, total items/pages and next/previous flags.
 - Numeric filters must be finite decimal values. A minimum walking speed greater than the maximum is rejected with HTTP 400.
 - Invalid filters, sort modes and page values return a structured `error` object.
+- Summary values are descriptive statistics only. No clinical thresholds, risk scores or medical interpretations are applied.
 
 The local CSV import does not create a server-side record or upload a file. The API remains read-only.
 

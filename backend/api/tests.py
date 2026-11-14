@@ -29,7 +29,29 @@ class MeasurementApiTests(TestCase):
         self.assertEqual(response.json()["status"], "ok")
         self.assertEqual(response.json()["project"], "GaitGuardian")
         self.assertEqual(response.json()["database"], "connected")
-        self.assertEqual(response.json()["services"], ["measurements"])
+        self.assertIn("descriptive-summary", response.json()["services"])
+
+    def test_descriptive_summary_returns_min_max_and_average(self):
+        response = self.client.get("/api/measurements/summary/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["measurement_count"], 2)
+        self.assertEqual(
+            payload["statistics"]["walking_speed"],
+            {"minimum": 0.78, "maximum": 0.83, "average": 0.805},
+        )
+        self.assertIn("Descriptive statistics only", payload["interpretation"])
+        self.assertIn("does not calculate fall risk", payload["disclaimer"])
+
+    def test_summary_handles_empty_database(self):
+        Measurement.objects.all().delete()
+        response = self.client.get("/api/measurements/summary/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["measurement_count"], 0)
+        self.assertEqual(
+            response.json()["statistics"]["walking_speed"],
+            {"minimum": None, "maximum": None, "average": None},
+        )
 
     def test_measurement_endpoint_returns_numeric_values_and_metadata(self):
         response = self.client.get("/api/measurements/")
@@ -103,4 +125,15 @@ class MeasurementStaticDemoModeTests(TestCase):
         self.assertEqual(
             [item["date"] for item in response.json()["items"]],
             ["Sample 05", "Sample 06"],
+        )
+
+    @override_settings(DEMO_DATA_MODE=True)
+    def test_static_demo_mode_calculates_descriptive_summary(self):
+        response = self.client.get("/api/measurements/summary/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["measurement_count"], 6)
+        self.assertGreater(
+            payload["statistics"]["walking_speed"]["maximum"],
+            payload["statistics"]["walking_speed"]["minimum"],
         )

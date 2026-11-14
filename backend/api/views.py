@@ -36,6 +36,13 @@ SORT_FIELDS = {
     "right_step_time": "right_step_time",
 }
 
+SUMMARY_FIELDS = {
+    "left_step_time": 3,
+    "right_step_time": 3,
+    "walking_speed": 3,
+    "balance_score": 2,
+}
+
 
 def _database_ready():
     try:
@@ -63,6 +70,20 @@ def _measurement_records():
     ]
 
 
+def _field_summary(records, field, decimal_places):
+    values = [Decimal(str(record[field])) for record in records]
+    if not values:
+        return {"minimum": None, "maximum": None, "average": None}
+
+    precision = Decimal("1").scaleb(-decimal_places)
+    average = (sum(values) / Decimal(len(values))).quantize(precision)
+    return {
+        "minimum": float(min(values)),
+        "maximum": float(max(values)),
+        "average": float(average),
+    }
+
+
 @require_GET
 def health(request):
     database = "not-required" if settings.DEMO_DATA_MODE else (
@@ -82,8 +103,25 @@ def health(request):
         "framework": "Django",
         "django_version": get_version(),
         "database": database,
-        "services": ["measurements"],
+        "services": ["measurements", "descriptive-summary"],
         "data_mode": "static-demo" if settings.DEMO_DATA_MODE else "database",
+    })
+
+
+@require_GET
+def measurement_summary(request):
+    records = _measurement_records()
+    summary = {
+        field: _field_summary(records, field, decimal_places)
+        for field, decimal_places in SUMMARY_FIELDS.items()
+    }
+    return JsonResponse({
+        "project": PROJECT,
+        "measurement_count": len(records),
+        "statistics": summary,
+        "source": "fictional demonstration dataset",
+        "disclaimer": DISCLAIMER,
+        "interpretation": "Descriptive statistics only; no clinical thresholds or risk classification are applied.",
     })
 
 
