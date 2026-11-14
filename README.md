@@ -13,11 +13,11 @@
 - Django-backed demonstration measurement records and a reproducible seed command.
 - Original dashboard preserved at frontend/public/prototype.html.
 
-## Technology
+## Runtime requirements\n- Node.js 22.12 or newer\n- Python 3.12 or newer (Python 3.13 is used in CI)\n\n## Technology
 | Layer | Stack |
 |---|---|
-| Frontend | React 19.3, Vite 8.3, JavaScript |
-| Backend | Django 6.1, Python |
+| Frontend | React 19.3.1, Vite 8.3.8, JavaScript |
+| Backend | Django 6.1.3, Python |
 | Data | Django ORM, SQLite locally, PostgreSQL via DATABASE_URL |
 | Visualisation | Responsive SVG chart and semantic HTML table |
 | API | Read-only JSON endpoints |
